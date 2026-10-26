@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumWealth // Cyber-Bison & Bear Tactical Command Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { darkMode: 'class', theme: { extend: {
+  colors: {
+    slate: { 850: '#0b1120', 900: '#060a12', 950: '#02040a' },
+    bison: { DEFAULT: '#00ffaa', glow: '#00ffaa33' },
+    bear: { DEFAULT: '#ff0055', glow: '#ff005533' },
+    tactical: { cyan: '#00e5ff', gold: '#ffd700', purple: '#b026ff', emerald: '#10b981' }
+  },
+  fontFamily: { mono: ['JetBrains Mono', 'Fira Code', 'monospace'] }
+} } }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<script src="https://unpkg.com/lucide@0.383.0"></script>
+<style>
+body{font-family:'JetBrains Mono',monospace;color:#cbd5e1;user-select:none;background:transparent}
+html{background:#020617}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#060a12}
+::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:#10b981}
+
+/* ===== RADAR BACKGROUND ===== */
+.bg-layer{position:fixed;inset:0;z-index:-10;pointer-events:none;overflow:hidden;background:radial-gradient(circle at 50% 50%,#04141a 0%,#020617 70%)}
+.bg-radar{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(16,185,129,.38),rgba(16,185,129,.08) 12%,transparent 28%);animation:sweep 6s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.radar-rings{position:absolute;left:50%;top:50%;width:90vmin;height:90vmin;transform:translate(-50%,-50%);border-radius:50%;
+  border:1px solid rgba(16,185,129,.35);
+  background:
+    radial-gradient(circle,transparent 24%,rgba(16,185,129,.3) 24.3%,transparent 24.8%),
+    radial-gradient(circle,transparent 49%,rgba(16,185,129,.3) 49.3%,transparent 49.8%),
+    radial-gradient(circle,transparent 74%,rgba(16,185,129,.3) 74.3%,transparent 74.8%),
+    linear-gradient(rgba(16,185,129,.28),rgba(16,185,129,.28)) center/1px 100% no-repeat,
+    linear-gradient(90deg,rgba(16,185,129,.28),rgba(16,185,129,.28)) center/100% 1px no-repeat}
+.blip{position:absolute;width:6px;height:6px;border-radius:50%;background:#00ffaa;box-shadow:0 0 10px #00ffaa;animation:blip 4s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.4)}}
+@media (prefers-reduced-motion:reduce){.bg-radar,.blip{animation:none}}
+
+.hud-milspec{background:linear-gradient(145deg,rgba(11,17,32,.55) 0%,rgba(4,7,14,.65) 100%);backdrop-filter:blur(2px);
+  border:1px solid rgba(16,185,129,.35);box-shadow:0 0 25px rgba(0,0,0,.6),inset 0 0 15px rgba(16,185,129,.05);position:relative}
+.hud-milspec::before{content:'';position:absolute;top:-1px;left:-1px;width:10px;height:10px;border-top:2px solid #10b981;border-left:2px solid #10b981}
+.hud-milspec::after{content:'';position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-bottom:2px solid #10b981;border-right:2px solid #10b981}
+.bison-card{border-color:rgba(0,255,170,.5)!important;box-shadow:0 0 15px rgba(0,255,170,.15)}
+.bear-card{border-color:rgba(255,0,85,.5)!important;box-shadow:0 0 15px rgba(255,0,85,.15)}
+@keyframes pulse-bear{0%,100%{border-color:rgba(255,0,85,1);box-shadow:0 0 18px rgba(255,0,85,.6)}50%{border-color:rgba(255,0,85,.3);box-shadow:0 0 4px rgba(255,0,85,.1)}}
+.bear-alarm{animation:pulse-bear 1.1s infinite}
+@keyframes pulse-bison{0%,100%{border-color:rgba(0,255,170,1);box-shadow:0 0 18px rgba(0,255,170,.6)}50%{border-color:rgba(0,255,170,.3);box-shadow:0 0 4px rgba(0,255,170,.1)}}
+.bison-surge{animation:pulse-bison 1.4s infinite}
+.gh{display:flex;align-items:center;justify-content:space-between;padding-bottom:.5rem;margin-bottom:.5rem;border-bottom:1px solid rgba(16,185,129,.2)}
+.gh h3{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.gh span{font-size:9px;color:#94a3b8}
+</style>
+</head>
+<body class="h-full flex flex-col overflow-x-hidden">
+
+<!-- RADAR BACKGROUND -->
+<div class="bg-layer">
+  <div class="bg-radar"></div>
+  <div class="radar-rings"></div>
+  <div class="blip" style="left:62%;top:30%"></div>
+  <div class="blip" style="left:35%;top:62%;animation-delay:1.3s"></div>
+  <div class="blip" style="left:72%;top:68%;animation-delay:2.4s;background:#ff0055;box-shadow:0 0 10px #ff0055"></div>
+  <div class="blip" style="left:25%;top:28%;animation-delay:3.2s"></div>
+</div>
+
+<!-- HEADER -->
+<header class="w-full bg-slate-900/70 border-b border-emerald-500/30 backdrop-blur-md sticky top-0 z-50 px-4 py-2">
+  <div class="max-w-[1920px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-3">
+    <div class="flex items-center space-x-3 w-full xl:w-auto justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="p-2 bg-slate-950 border border-emerald-400 rounded flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.4)]"><span class="text-xl">🦬</span></div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-black tracking-widest text-slate-100">QUANTUM<span class="text-bison">WEALTH</span></h1>
+            <span class="text-[9px] px-1.5 bg-emerald-950 border border-emerald-400 text-emerald-300 rounded font-bold">RADAR-CMD v12.0</span>
+          </div>
+          <p class="text-[9px] text-slate-400 tracking-tight">BISON BULL vs BEAR TACTICAL COMMAND &amp; ORACLE ENGINE</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 xl:hidden">
+        <button onclick="AppState.executeMarketWave()" class="px-2.5 py-1 text-[10px] bg-bison/20 border border-bison text-bison rounded">WAVE</button>
+        <button onclick="AppState.toggleAutoExecution()" id="mob-auto-btn" class="px-2.5 py-1 text-[10px] bg-slate-800 border border-slate-700 text-slate-300">AUTO</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-2 w-full xl:w-auto text-xs">
+      <div class="hud-milspec p-2 px-3 flex items-center space-x-2 rounded bison-card"><span class="text-lg">🦬</span>
+        <div><div class="text-[9px] text-bison font-bold uppercase tracking-wider">Bison Power</div>
+        <div class="text-sm font-black text-bison"><span id="tele-bison-power">68.4</span>%</div></div></div>
+      <div class="hud-milspec p-2 px-3 flex items-center space-x-2 rounded bear-card"><span class="text-lg">🐻</span>
+        <div><div class="text-[9px] text-bear font-bold uppercase tracking-wider">Bear Threat</div>
+        <div class="text-sm font-black text-bear"><span id="tele-bear-threat">31.6</span>%</div></div></div>
+      <div class="hud-milspec p-2 px-3 flex items-center space-x-2 rounded"><i data-lucide="vault" class="w-4 h-4 text-emerald-400"></i>
+        <div><div class="text-[9px] text-slate-400 uppercase tracking-wider">Net Pools</div>
+        <div class="text-sm font-bold text-emerald-300">$<span id="tele-capital">18.65M</span></div></div></div>
+      <div class="hud-milspec p-2 px-3 flex items-center space-x-2 rounded"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+        <div><div class="text-[9px] text-slate-400 uppercase tracking-wider">Bear Anomalies</div>
+        <div class="text-sm font-bold text-amber-400"><span id="tele-anomalies">3</span>/25</div></div></div>
+    </div>
+
+    <div class="hidden xl:flex items-center space-x-2">
+      <button onclick="AppState.toggleAutoExecution()" id="desktop-auto-btn" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 rounded flex items-center gap-1.5 transition-all">
+        <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i><span>AUTO-PILOT: OFF</span></button>
+      <button onclick="AppState.triggerBearRaid()" class="px-3 py-1.5 text-xs bg-bear/20 hover:bg-bear/40 border border-bear text-bear font-bold rounded flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(255,0,85,0.3)]">
+        <span class="text-sm">🐻</span><span>BEAR MARKET RAID</span></button>
+      <button onclick="AppState.executeMarketWave()" class="px-4 py-1.5 text-xs bg-bison/20 hover:bg-bison/40 border border-bison text-bison font-black rounded flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,170,0.4)] transition-all active:scale-95">
+        <span class="text-sm">🦬</span><span>BISON BULL RALLY</span></button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="flex-1 max-w-[1920px] w-full mx-auto p-4 lg:p-5 grid grid-cols-1 xl:grid-cols-12 gap-5">
+
+  <!-- LEFT -->
+  <section class="xl:col-span-7 flex flex-col space-y-4">
+    <div class="hud-milspec p-4 rounded-lg flex flex-col">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-emerald-500/20">
+        <div class="flex items-center space-x-2"><i data-lucide="grid" class="w-4 h-4 text-emerald-400"></i>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">5x5 Capital Allocation Radar Grid</h2></div>
+        <div class="flex items-center space-x-3 text-[10px]">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-bison inline-block"></span> 🦬 Bison</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-400 inline-block"></span> ⚖️ Volatile</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-bear inline-block"></span> 🐻 Deficit</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-5 gap-2 min-h-[300px]" id="tactical-matrix-grid"></div>
+      <div class="mt-3 pt-2.5 border-t border-emerald-500/10 flex items-center justify-between text-[10px] text-slate-400">
+        <span class="flex items-center gap-1"><i data-lucide="crosshair" class="w-3 h-3 text-emerald-400"></i> Click a node to probe its telemetry.</span>
+        <span id="matrix-status-ticker" class="text-bison font-bold">RADAR SWEEP ACTIVE // ALL ZONES LOCKED</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-bison">🦬 Graph 1: Bison Momentum</h3><span>LINE</span></div>
+        <div class="h-[140px] relative"><canvas id="bisonVsBearLineChart"></canvas></div>
+      </div>
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-slate-100">Graph 2: Sector Spread</h3><span>STACKED BAR</span></div>
+        <div class="h-[140px] relative"><canvas id="sectorCapitalChart"></canvas></div>
+      </div>
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-amber-300">Graph 3: Node Health Ratio</h3><span>DOUGHNUT</span></div>
+        <div class="h-[140px] relative"><canvas id="nodeStatusDoughnutChart"></canvas></div>
+      </div>
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-purple-300">Graph 4: Bucket Distribution</h3><span>RADAR</span></div>
+        <div class="h-[140px] relative"><canvas id="bucketRadarChart"></canvas></div>
+      </div>
+
+      <!-- NEW GRAPHS -->
+      <div class="hud-milspec p-3.5 rounded-lg md:col-span-2">
+        <div class="gh"><h3 class="text-bison">Graph 5: Net Capital Line ▲▼</h3><span>LINE · GREEN = UP / RED = DOWN</span></div>
+        <div class="h-[170px] relative"><canvas id="capitalLineChart"></canvas></div>
+      </div>
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-slate-100">Graph 6: Increment / Decrement</h3><span>Δ $K PER STEP</span></div>
+        <div class="h-[170px] relative"><canvas id="deltaBarChart"></canvas></div>
+      </div>
+      <div class="hud-milspec p-3.5 rounded-lg">
+        <div class="gh"><h3 class="text-cyan-300">Graph 7: Sector Trend Lines</h3><span>5 LINES · $M</span></div>
+        <div class="h-[170px] relative"><canvas id="sectorLinesChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <section class="xl:col-span-5 flex flex-col space-y-4">
+    <div class="hud-milspec p-4 rounded-lg">
+      <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-emerald-500/20">
+        <div class="flex items-center space-x-2"><i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-100">QUANTUM-AI // Financial Advisor</h3></div>
+        <span class="px-2 py-0.5 text-[9px] bg-bison/20 border border-bison text-bison rounded animate-pulse font-bold">API: ONLINE</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <button onclick="AppState.runQuickAIStrategy('BISON_MAXIMIZE')" class="p-2 bg-slate-900/70 hover:bg-bison/20 border border-bison/40 rounded text-left transition-all"><div class="text-[9px] text-bison font-bold">🦬 BISON RALLY</div><div class="text-[10px] text-slate-300">High-Yield Boost</div></button>
+        <button onclick="AppState.runQuickAIStrategy('BEAR_SHIELD')" class="p-2 bg-slate-900/70 hover:bg-bear/20 border border-bear/40 rounded text-left transition-all"><div class="text-[9px] text-bear font-bold">🐻 BEAR DEFENSE</div><div class="text-[10px] text-slate-300">Fortify Buffers</div></button>
+        <button onclick="AppState.runQuickAIStrategy('NEUTRAL_BALANCE')" class="p-2 bg-slate-900/70 hover:bg-emerald-500/20 border border-emerald-500/40 rounded text-left transition-all"><div class="text-[9px] text-emerald-400 font-bold">⚖️ EQUILIBRIUM</div><div class="text-[10px] text-slate-300">Equalize Spread</div></button>
+      </div>
+      <div class="flex items-center gap-2 mb-2">
+        <input type="text" id="ai-query-input" placeholder="Query AI Oracle (e.g., 'Defend against crash')" class="flex-1 bg-slate-900/70 border border-emerald-500/30 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400" style="user-select:text">
+        <button onclick="AppState.querySmartAPI()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold text-xs uppercase rounded flex items-center gap-1 transition-all"><i data-lucide="zap" class="w-3.5 h-3.5"></i><span>QUERY</span></button>
+      </div>
+      <div id="ai-response-output" class="p-2.5 bg-slate-950/70 border border-emerald-500/20 rounded text-[11px] text-emerald-300 min-h-[50px] max-h-[75px] overflow-y-auto">[QUANTUM_AI_ORACLE]: Calibrated for Cyber-Bison radar telemetry. Ready for tactical inputs.</div>
+    </div>
+
+    <div class="hud-milspec p-4 rounded-lg">
+      <div class="flex items-center justify-between pb-2 mb-2.5 border-b border-emerald-500/20">
+        <div class="flex items-center space-x-2"><i data-lucide="crosshair" class="w-4 h-4 text-emerald-400"></i>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">Node Probe Breakdown</h2></div>
+        <span id="probe-cell-badge" class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-950 border border-emerald-400 text-emerald-300">NODE: A1</span>
+      </div>
+      <div class="space-y-2 text-xs">
+        <div class="flex items-center justify-between bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+          <span class="text-slate-400">Market Sentiment:</span>
+          <span id="probe-status-text" class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-950 text-bison border border-bison">🦬 BISON_OPTIMIZED</span>
+        </div>
+        <div class="space-y-1.5 bg-slate-900/50 p-2.5 rounded border border-slate-800">
+          <div><div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">Savings Pool (Bison Growth):</span><span id="probe-savings-val" class="font-bold text-bison">$450,000</span></div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="probe-savings-bar" class="h-full bg-bison transition-all duration-300" style="width:60%"></div></div></div>
+          <div><div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">Invested Infrastructure:</span><span id="probe-invested-val" class="font-bold text-emerald-300">$320,000</span></div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="probe-invested-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width:40%"></div></div></div>
+          <div><div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">Emergency Buffer (Bear Shield):</span><span id="probe-buffer-val" class="font-bold text-amber-300">$180,000</span></div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="probe-buffer-bar" class="h-full bg-amber-400 transition-all duration-300" style="width:20%"></div></div></div>
+        </div>
+        <div class="flex items-center justify-between pt-1 px-1"><span class="text-slate-400">Node Total Valuation:</span><span id="probe-total-val" class="text-sm font-black text-emerald-300">$950,000</span></div>
+      </div>
+    </div>
+
+    <div class="hud-milspec p-4 rounded-lg flex-1">
+      <div class="flex items-center space-x-2 pb-2 mb-2.5 border-b border-emerald-500/20"><i data-lucide="send" class="w-4 h-4 text-emerald-400"></i>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">Tactical Capital Routing Dispatcher</h2></div>
+      <form id="capital-routing-form" onsubmit="AppState.handleCapitalRouting(event)" class="space-y-2 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="block text-[10px] text-slate-400 mb-0.5">Target Node</label>
+            <select id="dispatch-target-cell" class="w-full bg-slate-900/70 border border-emerald-500/30 rounded p-1.5 text-slate-200 focus:outline-none focus:border-emerald-400"></select></div>
+          <div><label class="block text-[10px] text-slate-400 mb-0.5">Asset Bucket</label>
+            <select id="dispatch-target-bucket" class="w-full bg-slate-900/70 border border-emerald-500/30 rounded p-1.5 text-slate-200 focus:outline-none focus:border-emerald-400">
+              <option value="savings">🦬 Savings (Bison Pool)</option>
+              <option value="invested">💎 Invested Infrastructure</option>
+              <option value="buffer">🛡️ Emergency Buffer (Bear Shield)</option></select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center justify-center space-x-1.5 p-1.5 bg-slate-900/70 border border-bison/40 rounded cursor-pointer hover:border-bison"><input type="radio" name="dispatch-action" value="INJECT" checked><span class="text-bison font-bold">+ INJECT ASSET</span></label>
+          <label class="flex items-center justify-center space-x-1.5 p-1.5 bg-slate-900/70 border border-bear/40 rounded cursor-pointer hover:border-bear"><input type="radio" name="dispatch-action" value="REALLOCATE"><span class="text-bear font-bold">- EXTRACT ASSET</span></label>
+        </div>
+        <div>
+          <div class="flex justify-between text-[10px] mb-0.5"><span class="text-slate-400">Routing Volume ($)</span><span id="dispatch-amount-display" class="text-emerald-400 font-bold">$100,000</span></div>
+          <input type="range" id="dispatch-amount-range" min="10000" max="500000" step="10000" value="100000"
+            oninput="document.getElementById('dispatch-amount-display').innerText='$'+parseInt(this.value).toLocaleString()" class="w-full accent-emerald-400 cursor-pointer h-1.5">
+        </div>
+        <button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold uppercase rounded flex items-center justify-center space-x-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+          <i data-lucide="shield-check" class="w-4 h-4"></i><span>EXECUTE ROUTING TRANSACTION</span></button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- FOOTER -->
+<footer class="w-full bg-slate-900/70 border-t border-emerald-500/20 px-4 py-2">
+  <div class="max-w-[1920px] mx-auto">
+    <div class="flex items-center justify-between pb-1 mb-1 border-b border-emerald-500/20">
+      <div class="flex items-center space-x-2 text-xs font-bold text-slate-300"><i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i><span>RADAR AUDIT LEDGER STREAM</span></div>
+      <div class="flex items-center space-x-3 text-[10px] text-slate-400">
+        <span id="log-counter">ENTRIES: 0</span>
+        <button onclick="AppState.clearAuditLogs()" class="hover:text-emerald-300 underline">PURGE STREAM</button>
+      </div>
+    </div>
+    <div id="audit-ledger-terminal" class="h-20 overflow-y-auto text-[11px] space-y-0.5 p-2 bg-slate-950/70 rounded border border-emerald-500/20"></div>
+  </div>
+</footer>
+
+<script>
+window.AppState = {
+  rows: ['A','B','C','D','E'], cols: [1,2,3,4,5], gridCells: {}, selectedCellId: 'A1',
+  sectorChartInstance: null, bisonVsBearChartInstance: null, doughnutChartInstance: null, radarChartInstance: null,
+  capitalLineInstance: null, deltaBarInstance: null, sectorLinesInstance: null,
+  historicalRatios: [60,62,58,65,70,68],
+  capitalHistory: [], deltaHistory: [], sectorHistory: [[],[],[],[],[]], stepLabels: [], stepCount: 0,
+  logCount: 0, autoExecutionActive: false, autoExecutionInterval: null,
+
+  STATUS: {
+    STABLE:  { label: '🦬 BISON_OPTIMIZED', class: 'bg-slate-900/70 border-bison/60 text-bison', badgeClass: 'bg-emerald-950 text-bison border-bison' },
+    SURGE:   { label: '⚖️ VOLATILE_STRAIN', class: 'bg-slate-900/70 border-amber-500/60 text-amber-400 bison-surge', badgeClass: 'bg-amber-950 text-amber-400 border-amber-800' },
+    DEFICIT: { label: '🐻 BEAR_DEFICIT', class: 'bg-slate-900/70 border-bear/80 text-bear bear-alarm', badgeClass: 'bg-red-950 text-bear border-bear' }
+  },
+
+  init() {
+    this.generateInitialGridState();
+    this.renderGridUI();
+    this.populateTargetSelector();
+    this.initSectorChart(); this.initBisonVsBearChart(); this.initDoughnutChart(); this.initRadarChart();
+    this.initFlowCharts();
+    this.updateProbePanel(this.selectedCellId);
+    this.recalculateTelemetryMetrics();
+    this.appendAuditLog("RADAR-CORE", "QUANTUMWEALTH RADAR COMMAND BOOTED SECURELY", "SUCCESS");
+    this.appendAuditLog("MARKET-FEED", "REAL-TIME BISON BULL vs BEAR SENTIMENT STREAM ENGAGED", "INFO");
+    if (window.lucide) lucide.createIcons();
+  },
+
+  classify(total) { return total < 500000 ? this.STATUS.DEFICIT : total > 820000 ? this.STATUS.SURGE : this.STATUS.STABLE; },
+
+  generateInitialGridState() {
+    this.rows.forEach(r => this.cols.forEach(c => {
+      const id = `${r}${c}`;
+      const savings = Math.floor(Math.random()*400000)+220000;
+      const invested = Math.floor(Math.random()*300000)+180000;
+      const buffer = Math.floor(Math.random()*150000)+60000;
+      this.gridCells[id] = { id, row: r, col: c, status: this.classify(savings+invested+buffer), savings, invested, buffer };
+    }));
+  },
+
+  renderGridUI() {
+    const container = document.getElementById('tactical-matrix-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.keys(this.gridCells).forEach(id => {
+      const cell = this.gridCells[id];
+      const totalVal = cell.savings + cell.invested + cell.buffer;
+      const isSelected = id === this.selectedCellId;
+      const el = document.createElement('div');
+      el.onclick = () => AppState.selectCell(id);
+      el.className = `p-2 rounded border cursor-pointer transition-all flex flex-col justify-between relative overflow-hidden ${cell.status.class} ${isSelected ? 'ring-2 ring-emerald-400 border-emerald-400 scale-[1.03] z-10 shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'hover:border-emerald-400/50'}`;
+      const icon = cell.status === this.STATUS.STABLE ? '🦬' : cell.status === this.STATUS.SURGE ? '⚖️' : '🐻';
+      const pct = v => (v / totalVal * 100).toFixed(0);
+      el.innerHTML = `
+        <div class="flex items-center justify-between text-[11px] font-bold"><span class="${isSelected ? 'text-emerald-300' : 'text-slate-200'}">${cell.id}</span><span class="text-xs">${icon}</span></div>
+        <div class="my-1"><div class="text-[9px] text-slate-400">Valuation</div><div class="text-xs font-black text-slate-100">$${(totalVal/1000).toFixed(0)}k</div></div>
+        <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden flex">
+          <div style="width:${pct(cell.savings)}%" class="bg-bison h-full"></div>
+          <div style="width:${pct(cell.invested)}%" class="bg-emerald-400 h-full"></div>
+          <div style="width:${pct(cell.buffer)}%" class="bg-amber-400 h-full"></div>
+        </div>`;
+      container.appendChild(el);
+    });
+  },
+
+  populateTargetSelector() {
+    const select = document.getElementById('dispatch-target-cell');
+    if (!select) return;
+    const keep = select.value;
+    select.innerHTML = '';
+    Object.keys(this.gridCells).forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.innerText = `Node ${id} [${this.gridCells[id].status.label}]`;
+      select.appendChild(opt);
+    });
+    select.value = keep || this.selectedCellId;
+  },
+
+  selectCell(id) {
+    this.selectedCellId = id;
+    this.renderGridUI();
+    this.updateProbePanel(id);
+    document.getElementById('dispatch-target-cell').value = id;
+  },
+
+  updateProbePanel(id) {
+    const cell = this.gridCells[id];
+    if (!cell) return;
+    const total = cell.savings + cell.invested + cell.buffer, safe = total || 1;
+    document.getElementById('probe-cell-badge').innerText = `NODE: ${cell.id}`;
+    const st = document.getElementById('probe-status-text');
+    st.innerText = cell.status.label;
+    st.className = `text-[10px] font-bold px-2 py-0.5 rounded border ${cell.status.badgeClass}`;
+    ['savings','invested','buffer'].forEach(k => {
+      document.getElementById(`probe-${k}-val`).innerText = '$' + cell[k].toLocaleString();
+      document.getElementById(`probe-${k}-bar`).style.width = `${(cell[k]/safe*100).toFixed(1)}%`;
+    });
+    document.getElementById('probe-total-val').innerText = '$' + total.toLocaleString();
+  },
+
+  recalculateTelemetryMetrics() {
+    let agg = 0, stressed = 0, stable = 0, surge = 0;
+    Object.values(this.gridCells).forEach(cell => {
+      agg += cell.savings + cell.invested + cell.buffer;
+      if (cell.status === this.STATUS.DEFICIT) stressed++;
+      else if (cell.status === this.STATUS.SURGE) surge++;
+      else stable++;
+    });
+    const bison = ((stable / 25) * 100).toFixed(1);
+    document.getElementById('tele-bison-power').innerText = bison;
+    document.getElementById('tele-bear-threat').innerText = (100 - bison).toFixed(1);
+    document.getElementById('tele-capital').innerText = (agg / 1e6).toFixed(2) + 'M';
+    document.getElementById('tele-anomalies').innerText = stressed;
+
+    this.historicalRatios.push(parseFloat(bison));
+    if (this.historicalRatios.length > 8) this.historicalRatios.shift();
+
+    this.recordFlow(agg);
+    this.updateBisonVsBearChart();
+    this.updateSectorChart();
+    this.updateDoughnutChart(stable, surge, stressed);
+    this.updateRadarChart();
+  },
+
+  /* ---------- CHARTS ---------- */
+  axis: { ticks: { color: '#94a3b8', font: { size: 8 } }, grid: { color: 'rgba(16,185,129,0.08)' } },
+  legend: { labels: { color: '#cbd5e1', font: { family: 'JetBrains Mono', size: 8 }, boxWidth: 8 } },
+
+  initBisonVsBearChart() {
+    const ctx = document.getElementById('bisonVsBearLineChart'); if (!ctx) return;
+    this.bisonVsBearChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels: ['T-7','T-6','T-5','T-4','T-3','T-2','T-1','NOW'], datasets: [
+        { label: '🦬 Bison %', data: [...this.historicalRatios], borderColor: '#00ffaa', backgroundColor: 'rgba(0,255,170,0.15)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2 },
+        { label: '🐻 Bear %', data: this.historicalRatios.map(v => 100 - v), borderColor: '#ff0055', backgroundColor: 'rgba(255,0,85,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2 }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: this.legend }, scales: { x: this.axis, y: { ...this.axis, min: 0, max: 100 } } }
+    });
+  },
+  updateBisonVsBearChart() {
+    const c = this.bisonVsBearChartInstance; if (!c) return;
+    c.data.labels = this.historicalRatios.map((_, i, a) => i === a.length - 1 ? 'NOW' : 'T-' + (a.length - 1 - i));
+    c.data.datasets[0].data = [...this.historicalRatios];
+    c.data.datasets[1].data = this.historicalRatios.map(v => 100 - v);
+    c.update();
+  },
+
+  initSectorChart() {
+    const ctx = document.getElementById('sectorCapitalChart'); if (!ctx) return;
+    const d = this.calculateSectorTotals();
+    this.sectorChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: ['Sec A','Sec B','Sec C','Sec D','Sec E'], datasets: [
+        { label: 'Bison Pool', data: d.savings, backgroundColor: 'rgba(0,255,170,0.8)' },
+        { label: 'Infra', data: d.invested, backgroundColor: 'rgba(16,185,129,0.8)' },
+        { label: 'Bear Shield', data: d.buffer, backgroundColor: 'rgba(255,183,0,0.8)' }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ...this.axis, stacked: true }, y: { ...this.axis, stacked: true } }, plugins: { legend: this.legend } }
+    });
+  },
+  updateSectorChart() {
+    const c = this.sectorChartInstance; if (!c) return;
+    const d = this.calculateSectorTotals();
+    c.data.datasets[0].data = d.savings; c.data.datasets[1].data = d.invested; c.data.datasets[2].data = d.buffer;
+    c.update();
+  },
+
+  initDoughnutChart() {
+    const ctx = document.getElementById('nodeStatusDoughnutChart'); if (!ctx) return;
+    this.doughnutChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: ['Bison Secure','Volatile Strain','Bear Deficit'], datasets: [{ data: [18,4,3], backgroundColor: ['#00ffaa','#ffb700','#ff0055'], borderWidth: 1, borderColor: '#020617' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { ...this.legend, position: 'right' } } }
+    });
+  },
+  updateDoughnutChart(a, b, c) {
+    if (!this.doughnutChartInstance) return;
+    this.doughnutChartInstance.data.datasets[0].data = [a, b, c];
+    this.doughnutChartInstance.update();
+  },
+
+  initRadarChart() {
+    const ctx = document.getElementById('bucketRadarChart'); if (!ctx) return;
+    const d = this.calculateSectorTotals();
+    this.radarChartInstance = new Chart(ctx, {
+      type: 'radar',
+      data: { labels: ['Sec A','Sec B','Sec C','Sec D','Sec E'], datasets: [
+        { label: 'Bison Savings', data: d.savings, borderColor: '#00ffaa', backgroundColor: 'rgba(0,255,170,0.2)', borderWidth: 1.5 },
+        { label: 'Bear Buffer', data: d.buffer, borderColor: '#ff0055', backgroundColor: 'rgba(255,0,85,0.2)', borderWidth: 1.5 }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: 'rgba(16,185,129,0.15)' }, pointLabels: { color: '#94a3b8', font: { size: 8 } }, ticks: { display: false } } }, plugins: { legend: this.legend } }
+    });
+  },
+  updateRadarChart() {
+    const c = this.radarChartInstance; if (!c) return;
+    const d = this.calculateSectorTotals();
+    c.data.datasets[0].data = d.savings; c.data.datasets[1].data = d.buffer;
+    c.update();
+  },
+
+  /* ---------- NEW: LINE + INCREMENT/DECREMENT GRAPHS ---------- */
+  initFlowCharts() {
+    const green = '#00ffaa', red = '#ff0055';
+
+    // Graph 5: net capital line, green segments when rising, red when falling
+    this.capitalLineInstance = new Chart(document.getElementById('capitalLineChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{
+        label: 'Net Capital ($M)', data: [], fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3,
+        backgroundColor: 'rgba(0,255,170,0.08)', borderColor: green,
+        segment: { borderColor: c => c.p1.parsed.y >= c.p0.parsed.y ? green : red },
+        pointBackgroundColor: c => (c.dataIndex === 0 || c.raw >= c.dataset.data[c.dataIndex - 1]) ? green : red
+      }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: this.legend }, scales: { x: this.axis, y: this.axis } }
+    });
+
+    // Graph 6: green bars = increment, red bars = decrement
+    this.deltaBarInstance = new Chart(document.getElementById('deltaBarChart'), {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Δ Capital ($K)', data: [], backgroundColor: c => c.raw >= 0 ? 'rgba(0,255,170,0.8)' : 'rgba(255,0,85,0.8)' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: this.legend }, scales: { x: this.axis, y: this.axis } }
+    });
+
+    // Graph 7: one line per sector
+    const colors = ['#00ffaa','#00e5ff','#ffd700','#b026ff','#ff0055'];
+    this.sectorLinesInstance = new Chart(document.getElementById('sectorLinesChart'), {
+      type: 'line',
+      data: { labels: [], datasets: ['A','B','C','D','E'].map((s, i) => ({ label: 'Sec ' + s, data: [], borderColor: colors[i], tension: 0.3, borderWidth: 1.5, pointRadius: 1.5 })) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: this.legend }, scales: { x: this.axis, y: this.axis } }
+    });
+  },
+
+  recordFlow(agg) {
+    const MAX = 12;
+    const prev = this.capitalHistory.length ? this.capitalHistory[this.capitalHistory.length - 1] : agg;
+    this.stepCount++;
+    this.stepLabels.push('#' + this.stepCount);
+    this.capitalHistory.push(agg);
+    this.deltaHistory.push(Math.round((agg - prev) / 1000));
+    const s = this.calculateSectorTotals();
+    this.sectorHistory.forEach((h, i) => h.push(+((s.savings[i] + s.invested[i] + s.buffer[i]) / 1e6).toFixed(2)));
+    if (this.stepLabels.length > MAX) {
+      this.stepLabels.shift(); this.capitalHistory.shift(); this.deltaHistory.shift();
+      this.sectorHistory.forEach(h => h.shift());
+    }
+    if (!this.capitalLineInstance) return;
+
+    this.capitalLineInstance.data.labels = [...this.stepLabels];
+    this.capitalLineInstance.data.datasets[0].data = this.capitalHistory.map(v => +(v / 1e6).toFixed(3));
+    this.capitalLineInstance.update();
+
+    this.deltaBarInstance.data.labels = [...this.stepLabels];
+    this.deltaBarInstance.data.datasets[0].data = [...this.deltaHistory];
+    this.deltaBarInstance.update();
+
+    this.sectorLinesInstance.data.labels = [...this.stepLabels];
+    this.sectorLinesInstance.data.datasets.forEach((d, i) => d.data = [...this.sectorHistory[i]]);
+    this.sectorLinesInstance.update();
+  },
+
+  calculateSectorTotals() {
+    const savings = [], invested = [], buffer = [];
+    this.rows.forEach(r => {
+      let a = 0, b = 0, c = 0;
+      this.cols.forEach(col => { const cell = this.gridCells[`${r}${col}`]; a += cell.savings; b += cell.invested; c += cell.buffer; });
+      savings.push(a); invested.push(b); buffer.push(c);
+    });
+    return { savings, invested, buffer };
+  },
+
+  /* ---------- ACTIONS ---------- */
+  refreshAll(targetId) {
+    this.renderGridUI();
+    this.updateProbePanel(targetId || this.selectedCellId);
+    this.recalculateTelemetryMetrics();
+    this.populateTargetSelector();
+  },
+
+  handleCapitalRouting(event) {
+    event.preventDefault();
+    const targetId = document.getElementById('dispatch-target-cell').value;
+    const bucket = document.getElementById('dispatch-target-bucket').value;
+    const action = document.querySelector('input[name="dispatch-action"]:checked').value;
+    const amount = parseInt(document.getElementById('dispatch-amount-range').value, 10);
+    const cell = this.gridCells[targetId];
+    if (!cell) return;
+
+    if (action === 'REALLOCATE' && cell[bucket] - amount < 0) {
+      this.appendAuditLog("ROUTING-REJECT", `BEAR SHIELD PREVENTED OVERDRAW IN NODE ${targetId}.`, "WARN");
+      alert(`INTERCEPTED: Transaction of $${amount.toLocaleString()} exceeds available capital.`);
+      return;
+    }
+    if (action === 'INJECT') {
+      cell[bucket] += amount;
+      this.appendAuditLog("ROUTING-EXEC", `BISON INJECTED $${amount.toLocaleString()} INTO NODE ${targetId}`, "SUCCESS");
+    } else {
+      cell[bucket] -= amount;
+      this.appendAuditLog("ROUTING-EXEC", `EXTRACTED $${amount.toLocaleString()} FROM NODE ${targetId}`, "INFO");
+    }
+    cell.status = this.classify(cell.savings + cell.invested + cell.buffer);
+    this.refreshAll(targetId);
+    document.getElementById('dispatch-target-cell').value = targetId;
+  },
+
+  executeMarketWave() {
+    this.appendAuditLog("BISON-RALLY", "EXECUTING BISON BULL MARKET CAPITAL SURGE WAVE...", "SUCCESS");
+    Object.values(this.gridCells).forEach(cell => {
+      cell.savings = Math.max(10000, Math.floor(cell.savings * (1 + Math.random() * 0.28 - 0.08)));
+      cell.invested = Math.floor(cell.invested * (1 + Math.random() * 0.18 - 0.05));
+      cell.buffer = Math.max(5000, Math.floor(cell.buffer * (1 + Math.random() * 0.2 - 0.08)));
+      cell.status = this.classify(cell.savings + cell.invested + cell.buffer);
+    });
+    this.refreshAll();
+    document.getElementById('matrix-status-ticker').innerText = "RADAR SWEEP // BISON SURGE EXPANSION";
+  },
+
+  triggerBearRaid() {
+    this.appendAuditLog("BEAR-RAID", "WARNING: BEAR MARKET RAID INSTIGATED - DRAINING LIQUIDITY!", "WARN");
+    Object.keys(this.gridCells).forEach((id, idx) => {
+      const cell = this.gridCells[id];
+      cell.buffer = Math.floor(cell.buffer * 0.3);
+      if (idx % 2 === 0) { cell.savings = Math.floor(cell.savings * 0.45); cell.status = this.STATUS.DEFICIT; }
+      else cell.status = this.classify(cell.savings + cell.invested + cell.buffer);
+    });
+    this.refreshAll();
+    document.getElementById('matrix-status-ticker').innerText = "CRITICAL ALERT // BEAR DEFICIT ANOMALIES DETECTED";
+    alert("BEAR RAID ALERT: Sudden market liquidity squeeze across multiple nodes!");
+  },
+
+  toggleAutoExecution() {
+    this.autoExecutionActive = !this.autoExecutionActive;
+    const b1 = document.getElementById('desktop-auto-btn'), b2 = document.getElementById('mob-auto-btn');
+    if (this.autoExecutionActive) {
+      if (b1) b1.innerHTML = `<i data-lucide="cpu" class="w-3.5 h-3.5 text-bison"></i><span>AUTO-PILOT: ACTIVE</span>`;
+      if (b2) b2.innerText = 'AUTO: ON';
+      this.appendAuditLog("AUTOPILOT", "AUTONOMOUS CYBER-BISON REBALANCING ENGAGED", "SUCCESS");
+      this.autoExecutionInterval = setInterval(() => this.executeMarketWave(), 4000);
+    } else {
+      if (b1) b1.innerHTML = `<i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i><span>AUTO-PILOT: OFF</span>`;
+      if (b2) b2.innerText = 'AUTO: OFF';
+      this.appendAuditLog("AUTOPILOT", "AUTONOMOUS REBALANCING DISENGAGED", "INFO");
+      clearInterval(this.autoExecutionInterval);
+    }
+    if (window.lucide) lucide.createIcons();
+  },
+
+  runQuickAIStrategy(type) {
+    const out = document.getElementById('ai-response-output'); if (!out) return;
+    const cells = Object.values(this.gridCells);
+    if (type === 'BISON_MAXIMIZE') {
+      cells.forEach(c => { c.savings += 80000; c.status = this.classify(c.savings + c.invested + c.buffer); });
+      out.innerHTML = `[QUANTUM_AI_ORACLE]: 🦬 Bison Rally strategy executed! Injected +$80k boost.`;
+      this.appendAuditLog("AI-STRATEGY", "EXECUTED BISON BULL CAPITAL EXPANSION", "SUCCESS");
+    } else if (type === 'BEAR_SHIELD') {
+      cells.forEach(c => { c.buffer += 60000; c.status = this.classify(c.savings + c.invested + c.buffer); });
+      out.innerHTML = `[QUANTUM_AI_ORACLE]: 🐻 Bear Shield active! Fortified buffers with +$60k.`;
+      this.appendAuditLog("AI-STRATEGY", "FORTIFIED BEAR DEFENSE BUFFERS", "INFO");
+    } else {
+      cells.forEach(c => {
+        const t = c.savings + c.invested + c.buffer;
+        c.savings = Math.floor(t * 0.45); c.invested = Math.floor(t * 0.35); c.buffer = Math.floor(t * 0.20);
+        c.status = this.classify(t);
+      });
+      out.innerHTML = `[QUANTUM_AI_ORACLE]: ⚖️ Equilibrium rebalance complete!`;
+      this.appendAuditLog("AI-STRATEGY", "REBALANCED PORTFOLIO EQUILIBRIUM", "SUCCESS");
+    }
+    this.refreshAll();
+  },
+
+  querySmartAPI() {
+    const input = document.getElementById('ai-query-input'), out = document.getElementById('ai-response-output');
+    if (!input || !out) return;
+    const q = input.value.trim() || "Analyze Bison vs Bear dominance";
+    this.appendAuditLog("AI-API-QUERY", `USER QUERY: "${q}"`, "INFO");
+    out.innerHTML = `[QUANTUM_AI_ORACLE]: Computing radar vectors...`;
+    setTimeout(() => {
+      const l = q.toLowerCase();
+      let r = `[QUANTUM_AI_ORACLE]: Bison momentum strong. Recommended allocation: Route 15% to Infrastructure.`;
+      if (l.includes('bear') || l.includes('crash')) r = `[QUANTUM_AI_ORACLE]: Bear threat detected! Auto-reallocating buffers to stabilize deficit nodes.`;
+      else if (l.includes('bison') || l.includes('bull')) r = `[QUANTUM_AI_ORACLE]: Bison Bull surge confirmed! High-yield growth primed.`;
+      out.textContent = r;
+      this.appendAuditLog("AI-API-SUCCESS", "ORACLE API RETURNED OPTIMIZED DEFENSE PARAMETERS", "SUCCESS");
+      input.value = '';
+    }, 500);
+  },
+
+  appendAuditLog(tag, message, level = "INFO") {
+    const t = document.getElementById('audit-ledger-terminal'); if (!t) return;
+    this.logCount++;
+    document.getElementById('log-counter').innerText = `ENTRIES: ${this.logCount}`;
+    const n = new Date(), p = v => String(v).padStart(2, '0');
+    const ts = `${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+    const color = level === "SUCCESS" ? "text-bison font-bold" : level === "WARN" ? "text-bear font-bold" : "text-emerald-400";
+    const row = document.createElement('div');
+    row.className = "flex items-start space-x-2 leading-relaxed";
+    row.innerHTML = `<span class="text-slate-500">[${ts}]</span><span class="text-slate-400 font-bold">[${tag}]</span><span class="${color}">${message}</span>`;
+    t.appendChild(row);
+    t.scrollTop = t.scrollHeight;
+  },
+
+  clearAuditLogs() {
+    const t = document.getElementById('audit-ledger-terminal'); if (t) t.innerHTML = '';
+    this.logCount = 0;
+    document.getElementById('log-counter').innerText = 'ENTRIES: 0';
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => AppState.init());
+</script>
+</body>
+</html>
