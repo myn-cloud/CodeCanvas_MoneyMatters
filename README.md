@@ -1,5 +1,5 @@
-Style & Substance
-Fayaz &
+Team: Style & Substance
+Members: Fayaz &
 Yousuf
 
 # QuantumWealth – Financial Management Dashboard
